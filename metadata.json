@@ -1,0 +1,6 @@
+{
+  "name": "Global Conflict & Activity Radar",
+  "description": "A web application for visualizing global aircraft movements, conflict zones, and critical alerts on an interactive map, complemented by a live feed of related events. This tool provides a simulated overview for monitoring geopolitical and military activities.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

@@ -1,262 +1,167 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radar Aéreo Global</title>
-    
-    <!-- Tailwind CSS para estilização -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Biblioteca de mapa Leaflet.js -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
-    <!-- Plugin para rotação de marcadores no Leaflet -->
-    <script src="https://cdn.jsdelivr.net/npm/leaflet-rotatedmarker@0.2.0/leaflet.rotatedMarker.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Conflict & Activity Radar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-providers@1.13.0/leaflet-providers.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #111827; /* bg-gray-900 */
+      color: #e5e7eb; /* text-gray-200 */
+    }
+    #root, #map-container, #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .leaflet-popup-content-wrapper {
+      background: #1f2937; /* bg-gray-800 */
+      color: #d1d5db; /* text-gray-300 */
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .leaflet-popup-content {
+      margin: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .leaflet-popup-tip {
+      background: #1f2937; /* bg-gray-800 */
+    }
+    .leaflet-tooltip {
+      background-color: #1f2937; /* bg-gray-800 */
+      border: 1px solid #374151; /* border-gray-700 */
+      color: #d1d5db; /* text-gray-300 */
+    }
+    .pulse-icon-wrapper > div {
+      width: 16px; /* Match iconSize in MapDisplay */
+      height: 16px; /* Match iconSize in MapDisplay */
+      border-radius: 50%;
+      background-color: #ef4444; /* red-500 */
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 1);
+      animation: pulse-animation 2s infinite;
+    }
 
-    <!-- Fonte do Google -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    @keyframes pulse-animation {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+      70% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+    /* Custom scrollbar for news feed (Tailwind doesn't directly style scrollbars consistently) */
+    #news-feed::-webkit-scrollbar {
+      width: 8px;
+    }
+    #news-feed::-webkit-scrollbar-track {
+      background: #374151; /* gray-700 */
+      border-radius: 4px;
+    }
+    #news-feed::-webkit-scrollbar-thumb {
+      background: #4b5563; /* gray-600 */
+      border-radius: 4px;
+    }
+    #news-feed::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* gray-500 */
+    }
 
-    <style>
-        /* Estilo base para a página e para a fonte */
-        body {
-            font-family: 'Inter', sans-serif;
-            overflow: hidden; /* Evita barras de rolagem */
-        }
-        /* Garante que o mapa preencha a tela */
-        #map {
-            height: 100vh;
-            width: 100vw;
-            cursor: grab;
-        }
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-            background-color: #1f2937; /* bg-gray-800 */
-            color: #f3f4f6; /* text-gray-100 */
-            border-radius: 8px;
-        }
-        .leaflet-popup-content {
-            margin: 15px;
-        }
-        .leaflet-container a.leaflet-popup-close-button {
-            color: #f3f4f6;
-        }
-    </style>
+    /* Legend Styles */
+    .info.legend {
+      padding: 10px 12px;
+      background: rgba(31, 41, 55, 0.9); /* bg-gray-800 with opacity */
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      color: #e5e7eb; /* text-gray-200 */
+      max-height: calc(100vh - 120px); /* Adjust max height as needed, leave space for map controls */
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+    .info.legend h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #93c5fd; /* text-blue-300 */
+      font-size: 1em; /* Adjusted from 1.1em */
+      border-bottom: 1px solid #4b5563; /* border-gray-600 */
+      padding-bottom: 6px;
+    }
+    .info.legend .legend-section {
+      margin-bottom: 10px;
+    }
+    .info.legend .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 0.85em; /* Adjusted from 0.9em */
+    }
+    .info.legend .legend-item svg,
+    .info.legend .legend-item .color-box,
+    .info.legend .legend-item .alert-dot {
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .info.legend .legend-item .color-box {
+      width: 14px; /* Adjusted from 16px */
+      height: 14px; /* Adjusted from 16px */
+      border: 1px solid #6b7280; /* border-gray-500 */
+      border-radius: 2px;
+    }
+    .info.legend .legend-item .alert-dot {
+      width: 12px; /* Adjusted size for static alert dot */
+      height: 12px;
+      background-color: #ef4444; /* red-500 */
+      border-radius: 50%;
+      border: 1px solid #f87171; /* red-400 for a slight highlight */
+    }
+    /* Scrollbar for legend if it overflows */
+    .info.legend::-webkit-scrollbar {
+      width: 6px;
+    }
+    .info.legend::-webkit-scrollbar-track {
+      background: #374151; /* gray-700 */
+      border-radius: 3px;
+    }
+    .info.legend::-webkit-scrollbar-thumb {
+      background: #4b5563; /* gray-600 */
+      border-radius: 3px;
+    }
+    .info.legend::-webkit-scrollbar-thumb:hover {
+      background: #6b7280; /* gray-500 */
+    }
+
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "leaflet": "https://esm.sh/leaflet@^1.9.4",
+    "leaflet-providers": "https://esm.sh/leaflet-providers@^2.0.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-gray-900">
-
-    <!-- O contêiner do mapa -->
-    <div id="map"></div>
-
-    <!-- Painel de Status (canto superior direito) -->
-    <div id="status-panel" class="absolute top-4 right-4 z-[1000] bg-gray-800 bg-opacity-80 text-white p-3 rounded-lg shadow-lg">
-        <div class="flex items-center space-x-2">
-            <div id="spinner" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            <span id="status-text" class="text-sm font-medium">Conectando à API...</span>
-        </div>
-        <div class="text-xs text-gray-300 mt-1">Aeronaves rastreadas: <span id="aircraft-count">0</span></div>
-    </div>
-    
-    <!-- Modal para detalhes do voo (inicialmente oculto) -->
-    <div id="details-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[2000] flex items-center justify-center p-4">
-        <div class="bg-gray-800 text-gray-100 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-            <div class="p-6 border-b border-gray-700 flex justify-between items-center">
-                <h3 class="text-xl font-bold">Detalhes do Voo</h3>
-                <button id="close-modal" class="text-gray-400 hover:text-white">&times;</button>
-            </div>
-            <div id="modal-content" class="p-6 space-y-4">
-                <!-- Conteúdo será injetado aqui pelo JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Ícone de avião em SVG (usado para os marcadores) -->
-    <svg width="0" height="0">
-        <defs>
-            <symbol id="airplane-icon" viewBox="0 0 24 24">
-                <path d="M21 15.984l-8.016-4.5V3.516c0-0.844-0.656-1.5-1.5-1.5s-1.5 0.656-1.5 1.5v7.969l-8.016 4.5v-1.969l8.016-2.531v-5.484l2.016-1.406v6.891l8.016 2.531v1.969z" fill="#facc15"></path>
-            </symbol>
-        </defs>
-    </svg>
-
-    <script type="module">
-        // --- CONFIGURAÇÕES E ESTADO GLOBAL ---
-
-        const API_URL = 'https://opensky-network.org/api/states/all';
-        const UPDATE_INTERVAL = 20000; // Atualiza a cada 20 segundos
-        let aircraftMarkers = {}; // Armazena os marcadores para atualização
-        let map; // Instância do mapa Leaflet
-
-        // --- ELEMENTOS DO DOM ---
-
-        const statusText = document.getElementById('status-text');
-        const spinner = document.getElementById('spinner');
-        const aircraftCount = document.getElementById('aircraft-count');
-        const modal = document.getElementById('details-modal');
-        const modalContent = document.getElementById('modal-content');
-        const closeModalButton = document.getElementById('close-modal');
-
-        // --- FUNÇÕES PRINCIPAIS ---
-
-        /**
-         * Inicializa o mapa Leaflet com um tema escuro.
-         */
-        function initializeMap() {
-            map = L.map('map', {
-                worldCopyJump: true // Permite rolagem infinita do mapa
-            }).setView([20, 0], 3); // Visão inicial (Latitude, Longitude), Zoom
-
-            // Adiciona a camada de mapa (tile layer) com tema escuro
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(map);
-        }
-
-        /**
-         * Busca os dados das aeronaves da API OpenSky.
-         */
-        async function fetchAircraftData() {
-            statusText.textContent = 'Buscando dados...';
-            spinner.classList.remove('hidden');
-
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) {
-                    throw new Error(`Erro na API: ${response.statusText}`);
-                }
-                const data = await response.json();
-                
-                updateMap(data.states);
-
-                statusText.textContent = 'Dados atualizados';
-                setTimeout(() => { statusText.textContent = 'Monitorando...'; }, 2000);
-
-            } catch (error) {
-                console.error("Falha ao buscar dados:", error);
-                statusText.textContent = 'Erro de conexão';
-            } finally {
-                spinner.classList.add('hidden');
-            }
-        }
-
-        /**
-         * Atualiza o mapa com os novos dados das aeronaves.
-         * @param {Array} states - Array de estados de aeronaves da API.
-         */
-        function updateMap(states) {
-            if (!states) {
-                aircraftCount.textContent = '0';
-                return;
-            }
-            
-            const visibleAircraft = states.filter(s => s[5] != null && s[6] != null); // Filtra aeronaves sem coordenadas
-            aircraftCount.textContent = visibleAircraft.length.toString();
-
-            const existingIcaos = Object.keys(aircraftMarkers);
-            const receivedIcaos = new Set(visibleAircraft.map(s => s[0]));
-
-            // Remove marcadores de aeronaves que não estão mais na resposta da API
-            existingIcaos.forEach(icao => {
-                if (!receivedIcaos.has(icao)) {
-                    map.removeLayer(aircraftMarkers[icao]);
-                    delete aircraftMarkers[icao];
-                }
-            });
-
-            // Adiciona ou atualiza marcadores
-            visibleAircraft.forEach(state => {
-                const icao24 = state[0];
-                const lat = state[6];
-                const lon = state[5];
-                const heading = state[10] || 0; // Direção da aeronave
-                const onGround = state[8];
-
-                const iconHtml = `<svg class="w-6 h-6 transform" style="filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.7));">
-                                      <use xlink:href="#airplane-icon" class="${onGround ? 'opacity-50' : ''}"/>
-                                  </svg>`;
-
-                const airplaneIcon = L.divIcon({
-                    html: iconHtml,
-                    className: 'airplane-marker', // Classe para não adicionar estilos extras
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                });
-
-                if (aircraftMarkers[icao24]) {
-                    // Atualiza a posição e rotação do marcador existente
-                    aircraftMarkers[icao24].setLatLng([lat, lon]);
-                    aircraftMarkers[icao24].setRotationAngle(heading);
-                    aircraftMarkers[icao24].setRotationOrigin('center center');
-                    // Atualiza os dados do popup
-                    aircraftMarkers[icao24].off('click').on('click', () => showFlightDetails(state));
-
-                } else {
-                    // Cria um novo marcador
-                    const marker = L.marker([lat, lon], {
-                        icon: airplaneIcon,
-                        rotationAngle: heading,
-                        rotationOrigin: 'center center'
-                    });
-                    
-                    marker.on('click', () => showFlightDetails(state));
-                    marker.addTo(map);
-                    aircraftMarkers[icao24] = marker;
-                }
-            });
-        }
-        
-        /**
-         * Exibe o modal com informações detalhadas de um voo.
-         * @param {Array} state - O array de estado da aeronave.
-         */
-        function showFlightDetails(state) {
-            const [
-                icao24, callsign, origin_country, time_position, last_contact,
-                longitude, latitude, baro_altitude, on_ground, velocity,
-                true_track, vertical_rate, sensors, geo_altitude, squawk, spi, position_source
-            ] = state;
-
-            const content = `
-                <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <div class="col-span-2 border-b border-gray-700 pb-2">
-                        <p class="text-sm text-gray-400">Indicativo / ICAO24</p>
-                        <p class="text-2xl font-bold text-yellow-400">${callsign?.trim() || 'N/D'}</p>
-                        <p class="text-sm font-mono text-gray-500">${icao24}</p>
-                    </div>
-                    <div><p class="text-sm text-gray-400">País de Origem</p><p>${origin_country || 'N/D'}</p></div>
-                    <div><p class="text-sm text-gray-400">Status</p><p class="${on_ground ? 'text-red-400' : 'text-green-400'}">${on_ground ? 'Em Solo' : 'Em Voo'}</p></div>
-                    <div><p class="text-sm text-gray-400">Altitude</p><p>${baro_altitude ? `${Math.round(baro_altitude * 3.28084)} ft` : 'N/D'}</p></div>
-                    <div><p class="text-sm text-gray-400">Velocidade</p><p>${velocity ? `${Math.round(velocity * 1.94384)} nós` : 'N/D'}</p></div>
-                    <div><p class="text-sm text-gray-400">Proa</p><p>${true_track ? `${Math.round(true_track)}°` : 'N/D'}</p></div>
-                    <div><p class="text-sm text-gray-400">Taxa Vertical</p><p>${vertical_rate ? `${Math.round(vertical_rate * 3.28084 * 60)} ft/min` : 'N/D'}</p></div>
-                    <div class="col-span-2"><p class="text-sm text-gray-400">Coordenadas</p><p class="font-mono text-xs">${latitude?.toFixed(4)}, ${longitude?.toFixed(4)}</p></div>
-                </div>
-            `;
-            
-            modalContent.innerHTML = content;
-            modal.classList.remove('hidden');
-        }
-
-        // --- INICIALIZAÇÃO ---
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeMap();
-            fetchAircraftData(); // Primeira busca imediata
-            setInterval(fetchAircraftData, UPDATE_INTERVAL); // Inicia o ciclo de atualização
-
-            // Event listener para fechar o modal
-            closeModalButton.addEventListener('click', () => modal.classList.add('hidden'));
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                }
-            });
-        });
-    </script>
-
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
